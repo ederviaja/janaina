@@ -252,7 +252,7 @@
  
   function fp(s){if(!s)return'—';const m=Math.floor(s/60),sec=String(Math.round(s%60)).padStart(2,'0');return`${m}:${sec}`}
   function pc(s){if(!s)return'';if(s<=330)return'cb2';if(s<=360)return'cg';return'cw'}
-  function fd(iso){if(!iso)return'—';return new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
+  function fd(iso){if(!iso)return'—';const d=iso.split('T')[0].split('-');return new Date(+d[0],+d[1]-1,+d[2]).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
  
   async function load(){
     try{
