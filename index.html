@@ -84,6 +84,14 @@
 <div class="main">
  
   <div class="view active" id="view-dashboard">
+    <div id="hoje-bar" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--subtext)">Hoje</div>
+        <div id="hoje-data" style="font-size:14px;font-weight:600;color:var(--text)">—</div>
+      </div>
+      <div id="hoje-status" style="font-size:13px;color:var(--subtext)">verificando treino...</div>
+    </div>
+ 
     <div class="hero">
       <div class="hc p"><div class="hl">Objetivo</div><div class="hv a">21K</div><div class="hs">05 de julho · Sub 1h47</div></div>
       <div class="hc"><div class="hl">Pace alvo</div><div class="hv">5:12</div><div class="hs">min/km no dia da prova</div></div>
@@ -114,18 +122,17 @@
     </div>
   </div>
  
-    <div class="card">
+    <div class="card" id="proximo-card">
       <div class="ct">Próximo Treino</div>
-      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-        <div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px">Intervalado Progressivo</div>
-          <div style="font-size:13px;color:var(--subtext);margin-top:4px">6 × 800m · Pace 5:05–5:15 · Recuperação 90s</div>
-        </div>
-        <div style="flex:1"></div>
-        <div style="text-align:right">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:4px">Objetivo</div>
-          <div style="font-size:13px">Elevar limiar · Sustentar pace forte em repetições</div>
-        </div>
+      <div id="proximo-body" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="loading"><div class="sp"></div>carregando...</div>
+      </div>
+    </div>
+ 
+    <div class="card">
+      <div class="ct">Semana de Treinos <span class="cb" id="semana-mini-label">—</span></div>
+      <div id="mini-semana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">
+        <div class="loading"><div class="sp"></div></div>
       </div>
     </div>
   </div>
@@ -177,7 +184,7 @@
 </div>
 <script>
   const SUPABASE_URL = 'https://uuhekabemapcjunpolbq.supabase.co'
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGVrYWJlbWFwY2p1bnBvbGJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTk0MjksImV4cCI6MjA5Mjg5NTQyOX0.VW7XwwvChk6Vq5AmY_yZxflkORYo6bUJHUm7wYTpzR8'
+  const SUPABASE_ANON_KEY = 'COLOCA_AQUI_SUA_CHAVE_PUBLICA'
   const ATHLETE_ID = '58dc49f7-f2dd-4cea-b45c-a737989143fb'
  
   const { createClient } = supabase
@@ -235,6 +242,152 @@
   }
   load()
   loadSemana()
+  loadProximo()
+  loadHoje()
+  loadMiniSemana()
+ 
+  async function loadMiniSemana() {
+    try {
+      const hoje = new Date()
+      const hojeStr = hoje.toISOString().split('T')[0]
+ 
+      // Pega segunda da semana atual
+      const diaSemana = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1
+      const segunda = new Date(hoje)
+      segunda.setDate(hoje.getDate() - diaSemana)
+      const domingo = new Date(segunda)
+      domingo.setDate(segunda.getDate() + 6)
+ 
+      const segStr = segunda.toISOString().split('T')[0]
+      const domStr = domingo.toISOString().split('T')[0]
+ 
+      document.getElementById('semana-mini-label').textContent = 
+        segunda.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) + ' – ' + 
+        domingo.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+ 
+      const { data: treinos } = await db
+        .from('planned_workouts')
+        .select('*')
+        .eq('athlete_id', ATHLETE_ID)
+        .gte('workout_date', segStr)
+        .lte('workout_date', domStr)
+        .order('workout_date', { ascending: true })
+ 
+      const dias = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM']
+      const cores = {
+        'Ritmo Progressivo': 'var(--blue)', 'Ritmo Sustentado': 'var(--blue)',
+        'Intervalado': 'var(--orange)', 'Longão Progressivo': 'var(--purple)',
+        'Longão Forte': 'var(--purple)', 'Opcional Leve': 'var(--accent)',
+        'Descanso': 'var(--border)'
+      }
+ 
+      const grid = document.getElementById('mini-semana')
+      grid.innerHTML = dias.map((dia, i) => {
+        const data = new Date(segunda)
+        data.setDate(segunda.getDate() + i)
+        const dataStr = data.toISOString().split('T')[0]
+        const diaNum = data.getDate()
+        const isHoje = dataStr === hojeStr
+        const treino = treinos ? treinos.find(t => t.workout_date === dataStr) : null
+        const cor = treino ? (cores[treino.type] || 'var(--accent)') : 'transparent'
+        const isDone = treino && treino.completed
+        const isDescanso = !treino || treino.type === 'Descanso'
+ 
+        return `<div style="
+          text-align:center;
+          background:var(--surface);
+          border:1px solid ${isHoje ? 'var(--accent)' : 'var(--border)'};
+          border-radius:10px;
+          padding:12px 6px;
+          position:relative;
+          ${isHoje ? 'box-shadow:0 0 0 1px var(--accent)22' : ''}
+        ">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${isHoje ? 'var(--accent)' : 'var(--subtext)'};text-transform:uppercase;margin-bottom:6px">${dia}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${isHoje ? 'var(--accent)' : 'var(--text)'};margin-bottom:8px">${diaNum}</div>
+          <div style="width:28px;height:4px;border-radius:4px;background:${isDescanso ? 'var(--border)' : cor};margin:0 auto;opacity:${isDone ? '0.4' : '1'}"></div>
+          ${isDone ? '<div style="font-size:9px;color:var(--accent2);margin-top:4px;font-weight:700">✓</div>' : ''}
+          ${treino && !isDescanso && !isDone ? '<div style="font-size:8px;color:var(--subtext);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px">' + treino.type.split(' ')[0] + '</div>' : ''}
+        </div>`
+      }).join('')
+ 
+    } catch(e) { console.error(e) }
+  }
+ 
+  async function loadHoje() {
+    const hoje = new Date()
+    const hojeStr = hoje.toISOString().split('T')[0]
+    const dataFmt = hoje.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'})
+    document.getElementById('hoje-data').textContent = dataFmt.charAt(0).toUpperCase() + dataFmt.slice(1)
+ 
+    try {
+      const { data: treinos } = await db
+        .from('planned_workouts')
+        .select('*')
+        .eq('athlete_id', ATHLETE_ID)
+        .eq('workout_date', hojeStr)
+        .limit(1)
+ 
+      const statusEl = document.getElementById('hoje-status')
+      const barEl = document.getElementById('hoje-bar')
+ 
+      if (!treinos || !treinos.length) {
+        statusEl.innerHTML = '😴 <span style="color:var(--accent)">Dia de descanso</span> — sem treino hoje'
+        barEl.style.borderColor = 'var(--border)'
+      } else {
+        const t = treinos[0]
+        if (t.type === 'Descanso') {
+          statusEl.innerHTML = '😴 <span style="color:var(--accent)">Dia de descanso</span> — recuperação ativa'
+          barEl.style.borderColor = 'var(--border)'
+        } else if (t.completed) {
+          statusEl.innerHTML = '✅ <span style="color:var(--accent2)">Treino concluído!</span> — ' + t.type
+          barEl.style.borderColor = 'var(--accent2)'
+        } else {
+          statusEl.innerHTML = '🏃 <span style="color:var(--orange)">Treino hoje: </span><strong>' + t.type + '</strong> · ' + (t.target_distance_km||'—') + ' km'
+          barEl.style.borderColor = 'var(--orange)'
+        }
+      }
+    } catch(e) { console.error(e) }
+  }
+ 
+  async function loadProximo() {
+    try {
+      const hoje = new Date().toISOString().split('T')[0]
+      const { data: treinos } = await db
+        .from('planned_workouts')
+        .select('*')
+        .eq('athlete_id', ATHLETE_ID)
+        .eq('completed', false)
+        .neq('type', 'Descanso')
+        .neq('type', 'Opcional Leve')
+        .gte('workout_date', hoje)
+        .order('workout_date', { ascending: true })
+        .limit(1)
+ 
+      const el = document.getElementById('proximo-body')
+      if (!treinos || !treinos.length) {
+        el.innerHTML = '<div style="color:var(--subtext);font-size:13px">Nenhum treino próximo encontrado.</div>'
+        return
+      }
+ 
+      const t = treinos[0]
+      const data = new Date(t.workout_date + 'T12:00:00')
+      const dataFmt = data.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'})
+ 
+      el.innerHTML = `
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:6px">${dataFmt}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px">${t.type}</div>
+          <div style="font-size:13px;color:var(--subtext);margin-top:4px">${t.description||''}</div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="text-align:right">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:4px">Distância</div>
+          <div style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:var(--accent)">${t.target_distance_km} km</div>
+        </div>`
+    } catch(e) {
+      console.error(e)
+    }
+  }
  
   async function loadSemana() {
     try {
