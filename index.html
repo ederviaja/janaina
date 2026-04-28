@@ -1,3 +1,6 @@
+Index · HTML
+Copiar
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -129,7 +132,6 @@
         <canvas id="paceChart" height="160" style="display:none"></canvas>
       </div>
     </div>
-  </div>
  
     <div class="card" id="proximo-card">
       <div class="ct">Próximo Treino</div>
@@ -191,6 +193,35 @@
   </div>
  
 </div>
+ 
+<!-- MODAL ENVIAR TREINO -->
+<div id="modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="closeModal(event)">
+  <div style="background:#17171c;border:1px solid #2a2a35;border-radius:14px;padding:28px;width:460px;max-width:95vw">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      Enviar Treino
+      <span onclick="document.getElementById('modal-ov').style.display='none'" style="cursor:pointer;color:#8888a0;font-size:20px;line-height:1">✕</span>
+    </div>
+    <div id="upload-area" onclick="document.getElementById('file-in').click()" ondragover="ev(event)" ondrop="drop(event)" ondragleave="document.getElementById('upload-area').style.borderColor='#2a2a35'" style="border:2px dashed #2a2a35;border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s">
+      <div style="font-size:32px;margin-bottom:10px">📸</div>
+      <div style="font-size:14px;font-weight:600;color:#e8e8f0">Arraste prints ou clique para selecionar</div>
+      <div style="font-size:12px;color:#8888a0;margin-top:4px">Garmin · Apple Watch · Strava</div>
+      <div style="font-size:10px;color:#555564;margin-top:6px">JPG · PNG · HEIC · Até 5 imagens</div>
+      <input type="file" id="file-in" accept="image/*" multiple onchange="prevFile(this)" style="display:none">
+    </div>
+    <!-- Grid de previews -->
+    <div id="upload-prev" style="display:none;margin-top:16px">
+      <div id="prev-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
+      <div style="font-size:11px;color:var(--subtext);text-align:center;margin-bottom:12px">
+        Clique na área acima para adicionar mais imagens
+      </div>
+      <button id="submit-btn" onclick="submitTreino()" style="width:100%;padding:13px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s">
+        Enviar para Análise →
+      </button>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:#8888a0;text-align:center">Integração Strava disponível em breve</div>
+  </div>
+</div>
+ 
 <script>
   const SUPABASE_URL = 'https://uuhekabemapcjunpolbq.supabase.co'
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGVrYWJlbWFwY2p1bnBvbGJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTk0MjksImV4cCI6MjA5Mjg5NTQyOX0.VW7XwwvChk6Vq5AmY_yZxflkORYo6bUJHUm7wYTpzR8'
@@ -199,7 +230,20 @@
   const { createClient } = supabase
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
  
-  function sw(id,el){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('view-'+id).classList.add('active');el.classList.add('active')}
+  // Data local correta do browser (sempre no fuso da Janaína)
+  function getLocalDate() {
+    const d = new Date()
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0')
+  }
+ 
+  function sw(id,el){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'))
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+    document.getElementById('view-'+id).classList.add('active')
+    el.classList.add('active')
+  }
  
   ;(function(){
     const prova=new Date('2026-07-05'),inicio=new Date('2026-03-01'),hoje=new Date()
@@ -211,19 +255,7 @@
  
   function fp(s){if(!s)return'—';const m=Math.floor(s/60),sec=String(Math.round(s%60)).padStart(2,'0');return`${m}:${sec}`}
   function pc(s){if(!s)return'';if(s<=330)return'cb2';if(s<=360)return'cg';return'cw'}
-  function fd(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
- 
-  function tgl(row){
-    if(row.classList.contains('ds'))return
-    const b=row.querySelector('.badge'),t=row.querySelector('.tt').textContent
-    if(row.classList.contains('done')){
-      row.classList.remove('done')
-      if(t.includes('Ritmo')){b.className='badge br';b.textContent='Ritmo'}
-      else if(t.includes('Long')){b.className='badge bl';b.textContent='Longão'}
-      else if(t.includes('Interval')){b.className='badge bi';b.textContent='Intervalado'}
-      else{b.className='badge bv';b.textContent='Opcional'}
-    }else{row.classList.add('done');b.className='badge bd';b.textContent='✓ Feito'}
-  }
+  function fd(iso){if(!iso)return'—';return new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
  
   async function load(){
     try{
@@ -249,374 +281,262 @@
       document.getElementById('chart-loading').innerHTML='<span style="color:var(--red)">⚠ Verifique a chave do Supabase</span>'
     }
   }
+ 
+  async function loadClima() {
+    try {
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.3045&longitude=-51.1696&current=temperature_2m,precipitation,weathercode,windspeed_10m&timezone=America/Sao_Paulo')
+      const data = await res.json()
+      const c = data.current
+      const temp = Math.round(c.temperature_2m)
+      const chuva = c.precipitation
+      const vento = Math.round(c.windspeed_10m)
+      const code = c.weathercode
+      let icon, desc
+      if(code===0){icon='☀️';desc='Céu limpo'}
+      else if(code<=2){icon='⛅';desc='Parcialmente nublado'}
+      else if(code===3){icon='☁️';desc='Nublado'}
+      else if(code<=49){icon='🌫️';desc='Neblina'}
+      else if(code<=59){icon='🌦️';desc='Garoa'}
+      else if(code<=69){icon='🌧️';desc='Chuva'}
+      else if(code<=79){icon='🌨️';desc='Neve/granizo'}
+      else if(code<=82){icon='🌧️';desc='Chuva forte'}
+      else if(code<=99){icon='⛈️';desc='Tempestade'}
+      else{icon='🌤️';desc='Variável'}
+      document.getElementById('clima-icon').textContent=icon
+      document.getElementById('clima-temp').textContent=temp+'°C'
+      document.getElementById('clima-desc').textContent=desc+(vento>20?' · vento '+vento+'km/h':'')
+      const statusEl=document.getElementById('hoje-status')
+      const statusText=statusEl.innerHTML
+      if(code>=80||(code>=63&&chuva>2)){
+        if(!statusText.includes('CHUVA'))statusEl.innerHTML=statusText+' <span style="color:var(--red);font-size:11px;font-weight:700">⚠ CHUVA FORTE — considere adiar</span>'
+        document.getElementById('hoje-bar').style.borderColor='var(--red)'
+      }else if(code>=51){
+        if(!statusText.includes('Chuva'))statusEl.innerHTML=statusText+' <span style="color:var(--orange);font-size:11px">🌧 Chuva leve prevista</span>'
+      }
+    }catch(e){document.getElementById('clima-desc').textContent='indisponível'}
+  }
+ 
+  async function loadMiniSemana() {
+    try {
+      const hoje=new Date()
+      const hojeStr=getLocalDate()
+      const diaSemana=hoje.getDay()===0?6:hoje.getDay()-1
+      const segunda=new Date(hoje)
+      segunda.setDate(hoje.getDate()-diaSemana)
+      const domingo=new Date(segunda)
+      domingo.setDate(segunda.getDate()+6)
+      const segStr=segunda.toISOString().split('T')[0]
+      const domStr=domingo.toISOString().split('T')[0]
+      document.getElementById('semana-mini-label').textContent=segunda.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+domingo.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+      const{data:treinos}=await db.from('planned_workouts').select('*').eq('athlete_id',ATHLETE_ID).gte('workout_date',segStr).lte('workout_date',domStr).order('workout_date',{ascending:true})
+      const dias=['SEG','TER','QUA','QUI','SEX','SÁB','DOM']
+      const cores={'Ritmo Progressivo':'var(--blue)','Ritmo Sustentado':'var(--blue)','Intervalado':'var(--orange)','Longão Progressivo':'var(--purple)','Longão Forte':'var(--purple)','Opcional Leve':'var(--accent)','Descanso':'var(--border)'}
+      const grid=document.getElementById('mini-semana')
+      grid.innerHTML=dias.map((dia,i)=>{
+        const data=new Date(segunda)
+        data.setDate(segunda.getDate()+i)
+        const dataStr=data.toISOString().split('T')[0]
+        const diaNum=data.getDate()
+        const isHoje=dataStr===hojeStr
+        const treino=treinos?treinos.find(t=>t.workout_date===dataStr):null
+        const cor=treino?(cores[treino.type]||'var(--accent)'):'transparent'
+        const isDone=treino&&treino.completed
+        const isDescanso=!treino||treino.type==='Descanso'
+        return`<div style="text-align:center;background:var(--surface);border:1px solid ${isHoje?'var(--accent)':'var(--border)'};border-radius:10px;padding:12px 6px;position:relative;${isHoje?'box-shadow:0 0 0 1px var(--accent)22':''}"><div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${isHoje?'var(--accent)':'var(--subtext)'};text-transform:uppercase;margin-bottom:6px">${dia}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${isHoje?'var(--accent)':'var(--text)'};margin-bottom:8px">${diaNum}</div><div style="width:28px;height:4px;border-radius:4px;background:${isDescanso?'var(--border)':cor};margin:0 auto;opacity:${isDone?'0.4':'1'}"></div>${isDone?'<div style="font-size:9px;color:var(--accent2);margin-top:4px;font-weight:700">✓</div>':''}${treino&&!isDescanso&&!isDone?'<div style="font-size:8px;color:var(--subtext);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px">'+treino.type.split(' ')[0]+'</div>':''}</div>`
+      }).join('')
+    }catch(e){console.error(e)}
+  }
+ 
+  async function loadHoje() {
+    const hojeStr=getLocalDate()
+    const hoje=new Date()
+    const dataFmt=hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})
+    document.getElementById('hoje-data').textContent=dataFmt.charAt(0).toUpperCase()+dataFmt.slice(1)
+    try{
+      const{data:treinos}=await db.from('planned_workouts').select('*').eq('athlete_id',ATHLETE_ID).eq('workout_date',hojeStr).limit(1)
+      const statusEl=document.getElementById('hoje-status')
+      const barEl=document.getElementById('hoje-bar')
+      if(!treinos||!treinos.length){
+        statusEl.innerHTML='😴 <span style="color:var(--accent)">Dia de descanso</span> — sem treino hoje'
+        barEl.style.borderColor='var(--border)'
+      }else{
+        const t=treinos[0]
+        if(t.type==='Descanso'){statusEl.innerHTML='😴 <span style="color:var(--accent)">Dia de descanso</span> — recuperação ativa';barEl.style.borderColor='var(--border)'}
+        else if(t.completed){statusEl.innerHTML='✅ <span style="color:var(--accent2)">Treino concluído!</span> — '+t.type;barEl.style.borderColor='var(--accent2)'}
+        else{statusEl.innerHTML='🏃 <span style="color:var(--orange)">Treino hoje: </span><strong>'+t.type+'</strong> · '+(t.target_distance_km||'—')+' km';barEl.style.borderColor='var(--orange)'}
+      }
+    }catch(e){console.error(e)}
+  }
+ 
+  async function loadProximo() {
+    try{
+      const hoje=getLocalDate()
+      const{data:treinos}=await db.from('planned_workouts').select('*').eq('athlete_id',ATHLETE_ID).eq('completed',false).neq('type','Descanso').neq('type','Opcional Leve').gte('workout_date',hoje).order('workout_date',{ascending:true}).limit(1)
+      const el=document.getElementById('proximo-body')
+      if(!treinos||!treinos.length){el.innerHTML='<div style="color:var(--subtext);font-size:13px">Nenhum treino próximo encontrado.</div>';return}
+      const t=treinos[0]
+      const data=new Date(t.workout_date+'T12:00:00')
+      const dataFmt=data.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})
+      el.innerHTML=`<div><div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:6px">${dataFmt}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px">${t.type}</div><div style="font-size:13px;color:var(--subtext);margin-top:4px">${t.description||''}</div></div><div style="flex:1"></div><div style="text-align:right"><div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:4px">Distância</div><div style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:var(--accent)">${t.target_distance_km} km</div></div>`
+    }catch(e){console.error(e)}
+  }
+ 
+  async function loadSemana() {
+    try{
+      const hojeStr=getLocalDate()
+      const{data:treinos,error}=await db.from('planned_workouts').select('*').eq('athlete_id',ATHLETE_ID).order('workout_date',{ascending:true})
+      if(error)throw error
+      if(!treinos||!treinos.length){document.getElementById('semana-body').innerHTML='<div style="color:var(--subtext);font-size:13px;padding:20px 0">Nenhum treino planejado encontrado.</div>';return}
+      const semanaAtual=treinos.find(t=>t.workout_date>=hojeStr)
+      const weekNum=semanaAtual?semanaAtual.week_number:treinos[treinos.length-1].week_number
+      const semana=treinos.filter(t=>t.week_number===weekNum)
+      const datas=semana.map(t=>t.workout_date)
+      const inicio=new Date(datas[0]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+      const fim=new Date(datas[datas.length-1]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+      document.getElementById('semana-titulo').innerHTML=`Semana ${weekNum} — ${inicio} a ${fim} <span class="cb" id="semana-badge">Em andamento</span>`
+      const diasNome={SEG:'SEG',TER:'TER',QUA:'QUA',QUI:'QUI',SEX:'SEX',SAB:'SÁB',DOM:'DOM'}
+      const badgeMap={'Ritmo Progressivo':'br','Ritmo Sustentado':'br','Intervalado':'bi','Longão Progressivo':'bl','Longão Forte':'bl','Opcional Leve':'bv','Descanso':'bx'}
+      const badgeLabel={'Ritmo Progressivo':'Ritmo','Ritmo Sustentado':'Ritmo','Intervalado':'Intervalado','Longão Progressivo':'Longão','Longão Forte':'Longão','Opcional Leve':'Opcional','Descanso':'Descanso'}
+      document.getElementById('semana-body').innerHTML=semana.map(t=>{
+        const data=new Date(t.workout_date+'T12:00:00')
+        const diaNum=data.getDate()
+        const diaNome=diasNome[t.day_of_week]||t.day_of_week
+        const isHoje=t.workout_date===hojeStr
+        const isDescanso=t.type==='Descanso'
+        const isDone=t.completed
+        const badge=badgeMap[t.type]||'bv'
+        const label=badgeLabel[t.type]||t.type
+        let classes='tr'
+        if(isDescanso)classes+=' ds'
+        else if(isDone)classes+=' done'
+        else if(isHoje)classes+=' hj'
+        const diaStyle=isDone?'style="background:rgba(200,241,53,.1)"':''
+        const onclick=isDescanso?'':`onclick="tglDb('${t.id}', this)"`
+        const badgeHtml=isDone?`<span class="badge bd">✓ Feito</span>`:`<span class="badge ${badge}">${label}</span>`
+        return`<div class="${classes}" ${onclick} data-id="${t.id}"><div class="db" ${diaStyle}><div class="dn">${diaNome}</div><div class="dd">${diaNum}</div></div><div><div class="tt">${t.type}</div><div class="td">${t.description||''}</div></div>${badgeHtml}</div>`
+      }).join('')
+    }catch(e){console.error(e);document.getElementById('semana-body').innerHTML='<div style="color:var(--red);font-size:13px;padding:20px 0">Erro ao carregar treinos.</div>'}
+  }
+ 
+  async function tglDb(id,row){
+    if(row.classList.contains('ds'))return
+    const badge=row.querySelector('.badge')
+    const isDone=row.classList.contains('done')
+    const newDone=!isDone
+    row.classList.toggle('done',newDone)
+    if(newDone){badge.className='badge bd';badge.textContent='✓ Feito'}
+    else{const tipo=row.querySelector('.tt').textContent;const badgeMap={'Ritmo':'br','Intervalado':'bi','Longão':'bl','Opcional':'bv'};const key=Object.keys(badgeMap).find(k=>tipo.includes(k))||'bv';badge.className='badge '+badgeMap[key];badge.textContent=tipo}
+    await db.from('planned_workouts').update({completed:newDone}).eq('id',id)
+  }
+ 
+  // ── MODAL E UPLOAD ──────────────────────────────────────────
+  let selectedFiles = []
+ 
+  function openModal(){
+    selectedFiles = []
+    document.getElementById('upload-prev').style.display='none'
+    document.getElementById('prev-grid').innerHTML=''
+    document.getElementById('upload-area').style.borderColor='#2a2a35'
+    document.getElementById('modal-ov').style.display='flex'
+  }
+  function closeModal(e){if(e.target===document.getElementById('modal-ov'))document.getElementById('modal-ov').style.display='none'}
+  function ev(e){e.preventDefault();document.getElementById('upload-area').style.borderColor='var(--accent)'}
+ 
+  function drop(e){
+    e.preventDefault()
+    document.getElementById('upload-area').style.borderColor='#2a2a35'
+    addFiles(Array.from(e.dataTransfer.files))
+  }
+ 
+  function prevFile(i){
+    if(i.files.length) addFiles(Array.from(i.files))
+    i.value = '' // reset para permitir re-selecionar o mesmo arquivo
+  }
+ 
+  function addFiles(files){
+    const imgs=files.filter(f=>f.type.startsWith('image/'))
+    selectedFiles=[...selectedFiles,...imgs].slice(0,5)
+    renderPreviews()
+  }
+ 
+  function renderPreviews(){
+    if(!selectedFiles.length){document.getElementById('upload-prev').style.display='none';return}
+    document.getElementById('upload-prev').style.display='block'
+    const grid=document.getElementById('prev-grid')
+    grid.innerHTML=selectedFiles.map((f,i)=>{
+      const url=URL.createObjectURL(f)
+      return`<div style="position:relative"><img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"><div onclick="removeFile(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.8);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:700">✕</div></div>`
+    }).join('')
+  }
+ 
+  function removeFile(i){
+    selectedFiles.splice(i,1)
+    renderPreviews()
+  }
+ 
+  async function submitTreino(){
+    if(!selectedFiles.length)return
+    const btn=document.getElementById('submit-btn')
+    btn.textContent='⏳ Analisando com IA...'
+    btn.disabled=true
+ 
+    try{
+      // Converte todas as imagens para base64
+      const images=await Promise.all(selectedFiles.map(f=>new Promise((res,rej)=>{
+        const r=new FileReader()
+        r.onload=e=>res(e.target.result.split(',')[1])
+        r.onerror=rej
+        r.readAsDataURL(f)
+      })))
+ 
+      const res=await fetch('https://uuhekabemapcjunpolbq.supabase.co/functions/v1/analyze-workout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          images,
+          athlete_id:ATHLETE_ID,
+          local_date:getLocalDate() // data correta do browser da Janaína
+        })
+      })
+ 
+      const data=await res.json()
+ 
+      if(data.success){
+        document.getElementById('modal-ov').style.display='none'
+        selectedFiles=[]
+        const w=data.analysis
+        const pace=fp(w.avg_pace_seconds)
+        const metaIcon=w.pace_vs_meta==='adiantado'?'🟢':w.pace_vs_meta==='no_ritmo'?'🟡':'🔴'
+        const destaques=(w.destaques||[]).map(d=>'✓ '+d).join('\n')
+        const melhorar=(w.melhorar||[]).map(d=>'→ '+d).join('\n')
+        alert(
+          `✅ Treino salvo!\n\n` +
+          `📅 ${w.date||'—'}  📏 ${w.distance_km||'—'} km  ⚡ ${pace}/km  ❤️ ${w.avg_heart_rate||'—'} bpm\n` +
+          `${metaIcon} Pace vs meta Sub 1h47: ${w.pace_vs_meta||'—'}\n\n` +
+          `📊 ${w.notes||''}\n\n` +
+          (destaques?`✨ Destaques:\n${destaques}\n\n`:'') +
+          (melhorar?`📈 A melhorar:\n${melhorar}\n\n`:'') +
+          `💬 ${w.feedback||''}`
+        )
+        load()
+        loadMiniSemana()
+      }else{
+        throw new Error(data.error)
+      }
+    }catch(e){
+      alert('❌ Erro ao analisar treino: '+e.message)
+    }finally{
+      btn.textContent='Enviar para Análise →'
+      btn.disabled=false
+    }
+  }
+ 
   load()
   loadSemana()
   loadProximo()
   loadHoje()
   loadMiniSemana()
   loadClima()
- 
-  async function loadClima() {
-    try {
-      const res = await fetch(
-        'https://api.open-meteo.com/v1/forecast?latitude=-23.3045&longitude=-51.1696&current=temperature_2m,precipitation,weathercode,windspeed_10m&timezone=America/Sao_Paulo'
-      )
-      const data = await res.json()
-      const c = data.current
- 
-      const temp = Math.round(c.temperature_2m)
-      const chuva = c.precipitation
-      const vento = Math.round(c.windspeed_10m)
-      const code = c.weathercode
- 
-      // Ícone e descrição baseado no weathercode
-      let icon, desc, alerta
-      if (code === 0) { icon='☀️'; desc='Céu limpo' }
-      else if (code <= 2) { icon='⛅'; desc='Parcialmente nublado' }
-      else if (code === 3) { icon='☁️'; desc='Nublado' }
-      else if (code <= 49) { icon='🌫️'; desc='Neblina' }
-      else if (code <= 59) { icon='🌦️'; desc='Garoa' }
-      else if (code <= 69) { icon='🌧️'; desc='Chuva' }
-      else if (code <= 79) { icon='🌨️'; desc='Neve/granizo' }
-      else if (code <= 82) { icon='🌧️'; desc='Chuva forte' }
-      else if (code <= 99) { icon='⛈️'; desc='Tempestade' }
-      else { icon='🌤️'; desc='Variável' }
- 
-      document.getElementById('clima-icon').textContent = icon
-      document.getElementById('clima-temp').textContent = temp + '°C'
-      document.getElementById('clima-desc').textContent = desc + (vento > 20 ? ' · vento ' + vento + 'km/h' : '')
- 
-      // Alerta de treino baseado no clima
-      const statusEl = document.getElementById('hoje-status')
-      const statusText = statusEl.innerHTML
- 
-      if (code >= 80 || (code >= 63 && chuva > 2)) {
-        // Chuva forte ou tempestade
-        const alertaClima = ' <span style="color:var(--red);font-size:11px;font-weight:700">⚠ CHUVA FORTE — considere adiar</span>'
-        if (!statusText.includes('CHUVA')) {
-          statusEl.innerHTML = statusText + alertaClima
-        }
-        document.getElementById('hoje-bar').style.borderColor = 'var(--red)'
-      } else if (code >= 51) {
-        // Garoa ou chuva leve
-        const alertaClima = ' <span style="color:var(--orange);font-size:11px">🌧 Chuva leve prevista</span>'
-        if (!statusText.includes('Chuva')) {
-          statusEl.innerHTML = statusText + alertaClima
-        }
-      }
- 
-    } catch(e) {
-      document.getElementById('clima-desc').textContent = 'indisponível'
-      console.error('Clima:', e)
-    }
-  }
- 
-  async function loadMiniSemana() {
-    try {
-      const hoje = new Date()
-      const hojeStr = hoje.toISOString().split('T')[0]
- 
-      // Pega segunda da semana atual
-      const diaSemana = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1
-      const segunda = new Date(hoje)
-      segunda.setDate(hoje.getDate() - diaSemana)
-      const domingo = new Date(segunda)
-      domingo.setDate(segunda.getDate() + 6)
- 
-      const segStr = segunda.toISOString().split('T')[0]
-      const domStr = domingo.toISOString().split('T')[0]
- 
-      document.getElementById('semana-mini-label').textContent = 
-        segunda.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) + ' – ' + 
-        domingo.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
- 
-      const { data: treinos } = await db
-        .from('planned_workouts')
-        .select('*')
-        .eq('athlete_id', ATHLETE_ID)
-        .gte('workout_date', segStr)
-        .lte('workout_date', domStr)
-        .order('workout_date', { ascending: true })
- 
-      const dias = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM']
-      const cores = {
-        'Ritmo Progressivo': 'var(--blue)', 'Ritmo Sustentado': 'var(--blue)',
-        'Intervalado': 'var(--orange)', 'Longão Progressivo': 'var(--purple)',
-        'Longão Forte': 'var(--purple)', 'Opcional Leve': 'var(--accent)',
-        'Descanso': 'var(--border)'
-      }
- 
-      const grid = document.getElementById('mini-semana')
-      grid.innerHTML = dias.map((dia, i) => {
-        const data = new Date(segunda)
-        data.setDate(segunda.getDate() + i)
-        const dataStr = data.toISOString().split('T')[0]
-        const diaNum = data.getDate()
-        const isHoje = dataStr === hojeStr
-        const treino = treinos ? treinos.find(t => t.workout_date === dataStr) : null
-        const cor = treino ? (cores[treino.type] || 'var(--accent)') : 'transparent'
-        const isDone = treino && treino.completed
-        const isDescanso = !treino || treino.type === 'Descanso'
- 
-        return `<div style="
-          text-align:center;
-          background:var(--surface);
-          border:1px solid ${isHoje ? 'var(--accent)' : 'var(--border)'};
-          border-radius:10px;
-          padding:12px 6px;
-          position:relative;
-          ${isHoje ? 'box-shadow:0 0 0 1px var(--accent)22' : ''}
-        ">
-          <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${isHoje ? 'var(--accent)' : 'var(--subtext)'};text-transform:uppercase;margin-bottom:6px">${dia}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${isHoje ? 'var(--accent)' : 'var(--text)'};margin-bottom:8px">${diaNum}</div>
-          <div style="width:28px;height:4px;border-radius:4px;background:${isDescanso ? 'var(--border)' : cor};margin:0 auto;opacity:${isDone ? '0.4' : '1'}"></div>
-          ${isDone ? '<div style="font-size:9px;color:var(--accent2);margin-top:4px;font-weight:700">✓</div>' : ''}
-          ${treino && !isDescanso && !isDone ? '<div style="font-size:8px;color:var(--subtext);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px">' + treino.type.split(' ')[0] + '</div>' : ''}
-        </div>`
-      }).join('')
- 
-    } catch(e) { console.error(e) }
-  }
- 
-  async function loadHoje() {
-    const hoje = new Date()
-    const hojeStr = hoje.toISOString().split('T')[0]
-    const dataFmt = hoje.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'})
-    document.getElementById('hoje-data').textContent = dataFmt.charAt(0).toUpperCase() + dataFmt.slice(1)
- 
-    try {
-      const { data: treinos } = await db
-        .from('planned_workouts')
-        .select('*')
-        .eq('athlete_id', ATHLETE_ID)
-        .eq('workout_date', hojeStr)
-        .limit(1)
- 
-      const statusEl = document.getElementById('hoje-status')
-      const barEl = document.getElementById('hoje-bar')
- 
-      if (!treinos || !treinos.length) {
-        statusEl.innerHTML = '😴 <span style="color:var(--accent)">Dia de descanso</span> — sem treino hoje'
-        barEl.style.borderColor = 'var(--border)'
-      } else {
-        const t = treinos[0]
-        if (t.type === 'Descanso') {
-          statusEl.innerHTML = '😴 <span style="color:var(--accent)">Dia de descanso</span> — recuperação ativa'
-          barEl.style.borderColor = 'var(--border)'
-        } else if (t.completed) {
-          statusEl.innerHTML = '✅ <span style="color:var(--accent2)">Treino concluído!</span> — ' + t.type
-          barEl.style.borderColor = 'var(--accent2)'
-        } else {
-          statusEl.innerHTML = '🏃 <span style="color:var(--orange)">Treino hoje: </span><strong>' + t.type + '</strong> · ' + (t.target_distance_km||'—') + ' km'
-          barEl.style.borderColor = 'var(--orange)'
-        }
-      }
-    } catch(e) { console.error(e) }
-  }
- 
-  async function loadProximo() {
-    try {
-      const hoje = new Date().toISOString().split('T')[0]
-      const { data: treinos } = await db
-        .from('planned_workouts')
-        .select('*')
-        .eq('athlete_id', ATHLETE_ID)
-        .eq('completed', false)
-        .neq('type', 'Descanso')
-        .neq('type', 'Opcional Leve')
-        .gte('workout_date', hoje)
-        .order('workout_date', { ascending: true })
-        .limit(1)
- 
-      const el = document.getElementById('proximo-body')
-      if (!treinos || !treinos.length) {
-        el.innerHTML = '<div style="color:var(--subtext);font-size:13px">Nenhum treino próximo encontrado.</div>'
-        return
-      }
- 
-      const t = treinos[0]
-      const data = new Date(t.workout_date + 'T12:00:00')
-      const dataFmt = data.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'})
- 
-      el.innerHTML = `
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:6px">${dataFmt}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px">${t.type}</div>
-          <div style="font-size:13px;color:var(--subtext);margin-top:4px">${t.description||''}</div>
-        </div>
-        <div style="flex:1"></div>
-        <div style="text-align:right">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtext);margin-bottom:4px">Distância</div>
-          <div style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:var(--accent)">${t.target_distance_km} km</div>
-        </div>`
-    } catch(e) {
-      console.error(e)
-    }
-  }
- 
-  async function loadSemana() {
-    try {
-      const hoje = new Date()
-      const hojeStr = hoje.toISOString().split('T')[0]
- 
-      // Pega treinos da semana atual (onde workout_date >= hoje ou nos últimos 7 dias)
-      const { data: treinos, error } = await db
-        .from('planned_workouts')
-        .select('*')
-        .eq('athlete_id', ATHLETE_ID)
-        .order('workout_date', { ascending: true })
- 
-      if (error) throw error
-      if (!treinos || !treinos.length) {
-        document.getElementById('semana-body').innerHTML = '<div style="color:var(--subtext);font-size:13px;padding:20px 0">Nenhum treino planejado encontrado.</div>'
-        return
-      }
- 
-      // Descobre semana atual
-      const semanaAtual = treinos.find(t => t.workout_date >= hojeStr)
-      const weekNum = semanaAtual ? semanaAtual.week_number : treinos[treinos.length-1].week_number
-      const semana = treinos.filter(t => t.week_number === weekNum)
- 
-      // Datas da semana
-      const datas = semana.map(t => t.workout_date)
-      const inicio = new Date(datas[0]).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})
-      const fim = new Date(datas[datas.length-1]).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})
-      document.getElementById('semana-titulo').innerHTML = `Semana ${weekNum} — ${inicio} a ${fim} <span class="cb" id="semana-badge">Em andamento</span>`
- 
-      const diasNome = {SEG:'SEG',TER:'TER',QUA:'QUA',QUI:'QUI',SEX:'SEX',SAB:'SÁB',DOM:'DOM'}
-      const badgeMap = {
-        'Ritmo Progressivo': 'br', 'Ritmo Sustentado': 'br',
-        'Intervalado': 'bi', 'Longão Progressivo': 'bl', 'Longão Forte': 'bl',
-        'Opcional Leve': 'bv', 'Descanso': 'bx'
-      }
-      const badgeLabel = {
-        'Ritmo Progressivo': 'Ritmo', 'Ritmo Sustentado': 'Ritmo',
-        'Intervalado': 'Intervalado', 'Longão Progressivo': 'Longão', 'Longão Forte': 'Longão',
-        'Opcional Leve': 'Opcional', 'Descanso': 'Descanso'
-      }
- 
-      document.getElementById('semana-body').innerHTML = semana.map(t => {
-        const data = new Date(t.workout_date + 'T12:00:00')
-        const diaNum = data.getDate()
-        const diaNome = diasNome[t.day_of_week] || t.day_of_week
-        const isHoje = t.workout_date === hojeStr
-        const isDescanso = t.type === 'Descanso'
-        const isDone = t.completed
-        const badge = badgeMap[t.type] || 'bv'
-        const label = badgeLabel[t.type] || t.type
- 
-        let classes = 'tr'
-        if (isDescanso) classes += ' ds'
-        else if (isDone) classes += ' done'
-        else if (isHoje) classes += ' hj'
- 
-        const diaStyle = isDone ? 'style="background:rgba(200,241,53,.1)"' : ''
-        const onclick = isDescanso ? '' : `onclick="tglDb('${t.id}', this)"`
-        const badgeHtml = isDone
-          ? `<span class="badge bd">✓ Feito</span>`
-          : `<span class="badge ${badge}">${label}</span>`
- 
-        return `<div class="${classes}" ${onclick} data-id="${t.id}">
-          <div class="db" ${diaStyle}><div class="dn">${diaNome}</div><div class="dd">${diaNum}</div></div>
-          <div><div class="tt">${t.type}</div><div class="td">${t.description||''}</div></div>
-          ${badgeHtml}
-        </div>`
-      }).join('')
- 
-    } catch(e) {
-      console.error(e)
-      document.getElementById('semana-body').innerHTML = '<div style="color:var(--red);font-size:13px;padding:20px 0">Erro ao carregar treinos.</div>'
-    }
-  }
- 
-  async function tglDb(id, row) {
-    if (row.classList.contains('ds')) return
-    const badge = row.querySelector('.badge')
-    const isDone = row.classList.contains('done')
-    const newDone = !isDone
- 
-    row.classList.toggle('done', newDone)
-    if (newDone) { badge.className='badge bd'; badge.textContent='✓ Feito' }
-    else {
-      const tipo = row.querySelector('.tt').textContent
-      const badgeMap = {'Ritmo':'br','Intervalado':'bi','Longão':'bl','Opcional':'bv'}
-      const key = Object.keys(badgeMap).find(k => tipo.includes(k)) || 'bv'
-      badge.className='badge '+badgeMap[key]; badge.textContent=tipo
-    }
- 
-    await db.from('planned_workouts').update({completed: newDone}).eq('id', id)
-  }
- 
-  function openModal(){document.getElementById('modal-ov').style.display='flex'}
-  function closeModal(e){if(e.target===document.getElementById('modal-ov'))document.getElementById('modal-ov').style.display='none'}
-  function ev(e){e.preventDefault();document.getElementById('upload-area').style.borderColor='var(--accent)'}
-  function drop(e){e.preventDefault();document.getElementById('upload-area').style.borderColor='#2a2a35';const f=e.dataTransfer.files[0];if(f)showPrev(f)}
-  function prevFile(i){if(i.files[0])showPrev(i.files[0])}
-  function showPrev(f){const r=new FileReader();r.onload=e=>{document.getElementById('prev-img').src=e.target.result;document.getElementById('upload-prev').style.display='block'};r.readAsDataURL(f)}
-  async function submitTreino() {
-    const img = document.getElementById('prev-img').src
-    const base64 = img.split(',')[1]
-    
-    // Mostra loading
-    const btn = document.querySelector('#upload-prev button')
-    btn.textContent = '⏳ Analisando com IA...'
-    btn.disabled = true
- 
-    try {
-      const res = await fetch('https://uuhekabemapcjunpolbq.supabase.co/functions/v1/analyze-workout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_base64: base64,
-          athlete_id: ATHLETE_ID
-        })
-      })
- 
-      const data = await res.json()
- 
-      if (data.success) {
-        document.getElementById('modal-ov').style.display = 'none'
-        const w = data.analysis
-        const pace = fp(w.avg_pace_seconds)
-        alert(`✅ Treino salvo!
- 
-📅 ${w.date}
-📏 ${w.distance_km} km
-⚡ Pace: ${pace}/km
-❤️ FC: ${w.avg_heart_rate || '—'} bpm
- 
-💬 ${w.notes}`)
-        load() // Atualiza dashboard
-      } else {
-        throw new Error(data.error)
-      }
-    } catch(e) {
-      alert('❌ Erro ao analisar treino: ' + e.message)
-    } finally {
-      btn.textContent = 'Enviar para Análise →'
-      btn.disabled = false
-    }
-  }
 </script>
-<div id="modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="closeModal(event)">
-  <div style="background:#17171c;border:1px solid #2a2a35;border-radius:14px;padding:28px;width:420px;max-width:95vw">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
-      Enviar Treino
-      <span onclick="document.getElementById('modal-ov').style.display='none'" style="cursor:pointer;color:#8888a0;font-size:20px;line-height:1">X</span>
-    </div>
-    <div id="upload-area" onclick="document.getElementById('file-in').click()" ondragover="ev(event)" ondrop="drop(event)" ondragleave="document.getElementById('upload-area').style.borderColor='#2a2a35'" style="border:2px dashed #2a2a35;border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s">
-      <div style="font-size:32px;margin-bottom:10px">&#128248;</div>
-      <div style="font-size:14px;font-weight:600;color:#e8e8f0">Arraste um print ou clique para selecionar</div>
-      <div style="font-size:12px;color:#8888a0;margin-top:4px">Garmin · Apple Watch · Strava</div>
-      <div style="font-size:10px;color:#555564;margin-top:8px">JPG · PNG · HEIC aceitos</div>
-      <input type="file" id="file-in" accept="image/*" onchange="prevFile(this)" style="display:none">
-    </div>
-    <div id="upload-prev" style="display:none;margin-top:16px">
-      <img id="prev-img" style="width:100%;border-radius:8px;border:1px solid #2a2a35;max-height:220px;object-fit:cover">
-      <button onclick="submitTreino()" style="width:100%;margin-top:12px;padding:12px;background:#c8f135;color:#000;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer">Enviar para Analise</button>
-    </div>
-    <div style="margin-top:12px;font-size:12px;color:#8888a0;text-align:center">Integracao Strava disponivel em breve</div>
-  </div>
-</div>
 </body>
 </html>
