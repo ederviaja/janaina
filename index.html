@@ -85,9 +85,18 @@
  
   <div class="view active" id="view-dashboard">
     <div id="hoje-bar" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--subtext)">Hoje</div>
-        <div id="hoje-data" style="font-size:14px;font-weight:600;color:var(--text)">—</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--subtext);margin-bottom:2px">Hoje · Londrina</div>
+          <div id="hoje-data" style="font-size:14px;font-weight:600;color:var(--text)">—</div>
+        </div>
+        <div id="clima-box" style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px">
+          <span id="clima-icon" style="font-size:18px">⏳</span>
+          <div>
+            <div id="clima-temp" style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:var(--text)">—</div>
+            <div id="clima-desc" style="font-size:10px;color:var(--subtext);margin-top:1px">carregando...</div>
+          </div>
+        </div>
       </div>
       <div id="hoje-status" style="font-size:13px;color:var(--subtext)">verificando treino...</div>
     </div>
@@ -184,7 +193,7 @@
 </div>
 <script>
   const SUPABASE_URL = 'https://uuhekabemapcjunpolbq.supabase.co'
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGVrYWJlbWFwY2p1bnBvbGJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTk0MjksImV4cCI6MjA5Mjg5NTQyOX0.VW7XwwvChk6Vq5AmY_yZxflkORYo6bUJHUm7wYTpzR8'
+  const SUPABASE_ANON_KEY = 'COLOCA_AQUI_SUA_CHAVE_PUBLICA'
   const ATHLETE_ID = '58dc49f7-f2dd-4cea-b45c-a737989143fb'
  
   const { createClient } = supabase
@@ -245,6 +254,62 @@
   loadProximo()
   loadHoje()
   loadMiniSemana()
+  loadClima()
+ 
+  async function loadClima() {
+    try {
+      const res = await fetch(
+        'https://api.open-meteo.com/v1/forecast?latitude=-23.3045&longitude=-51.1696&current=temperature_2m,precipitation,weathercode,windspeed_10m&timezone=America/Sao_Paulo'
+      )
+      const data = await res.json()
+      const c = data.current
+ 
+      const temp = Math.round(c.temperature_2m)
+      const chuva = c.precipitation
+      const vento = Math.round(c.windspeed_10m)
+      const code = c.weathercode
+ 
+      // Ícone e descrição baseado no weathercode
+      let icon, desc, alerta
+      if (code === 0) { icon='☀️'; desc='Céu limpo' }
+      else if (code <= 2) { icon='⛅'; desc='Parcialmente nublado' }
+      else if (code === 3) { icon='☁️'; desc='Nublado' }
+      else if (code <= 49) { icon='🌫️'; desc='Neblina' }
+      else if (code <= 59) { icon='🌦️'; desc='Garoa' }
+      else if (code <= 69) { icon='🌧️'; desc='Chuva' }
+      else if (code <= 79) { icon='🌨️'; desc='Neve/granizo' }
+      else if (code <= 82) { icon='🌧️'; desc='Chuva forte' }
+      else if (code <= 99) { icon='⛈️'; desc='Tempestade' }
+      else { icon='🌤️'; desc='Variável' }
+ 
+      document.getElementById('clima-icon').textContent = icon
+      document.getElementById('clima-temp').textContent = temp + '°C'
+      document.getElementById('clima-desc').textContent = desc + (vento > 20 ? ' · vento ' + vento + 'km/h' : '')
+ 
+      // Alerta de treino baseado no clima
+      const statusEl = document.getElementById('hoje-status')
+      const statusText = statusEl.innerHTML
+ 
+      if (code >= 80 || (code >= 63 && chuva > 2)) {
+        // Chuva forte ou tempestade
+        const alertaClima = ' <span style="color:var(--red);font-size:11px;font-weight:700">⚠ CHUVA FORTE — considere adiar</span>'
+        if (!statusText.includes('CHUVA')) {
+          statusEl.innerHTML = statusText + alertaClima
+        }
+        document.getElementById('hoje-bar').style.borderColor = 'var(--red)'
+      } else if (code >= 51) {
+        // Garoa ou chuva leve
+        const alertaClima = ' <span style="color:var(--orange);font-size:11px">🌧 Chuva leve prevista</span>'
+        if (!statusText.includes('Chuva')) {
+          statusEl.innerHTML = statusText + alertaClima
+        }
+      }
+ 
+    } catch(e) {
+      document.getElementById('clima-desc').textContent = 'indisponível'
+      console.error('Clima:', e)
+    }
+  }
  
   async function loadMiniSemana() {
     try {
@@ -555,4 +620,3 @@
 </div>
 </body>
 </html>
- 
