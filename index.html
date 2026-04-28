@@ -82,10 +82,10 @@
   <div class="tab" onclick="sw('analise',this)">Análise</div>
 </div>
 <div class="main">
-
+ 
   <div class="view active" id="view-dashboard">
     <div class="hero">
-      <div class="hc p"><div class="hl">Objetivo</div><div class="hv a">21K</div><div class="hs">05 de julho · Sub 1h50</div></div>
+      <div class="hc p"><div class="hl">Objetivo</div><div class="hv a">21K</div><div class="hs">05 de julho · Sub 1h47</div></div>
       <div class="hc"><div class="hl">Pace alvo</div><div class="hv">5:12</div><div class="hs">min/km no dia da prova</div></div>
       <div class="hc w"><div class="hl">Último treino</div><div class="hv" id="last-pace">—</div><div class="hs" id="last-info">carregando...</div></div>
       <div class="hc"><div class="hl">Total corridas</div><div class="hv" id="total-runs">—</div><div class="hs" id="total-km">carregando...</div></div>
@@ -113,7 +113,7 @@
       </div>
     </div>
   </div>
-
+ 
     <div class="card">
       <div class="ct">Próximo Treino</div>
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
@@ -129,22 +129,16 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="view" id="view-semana">
     <div class="card">
-      <div class="ct">Semana 10 — 21 a 27 de Abril <span class="cb">Em andamento</span></div>
-      <div class="wg">
-        <div class="tr done" onclick="tgl(this)"><div class="db" style="background:rgba(200,241,53,.1)"><div class="dn">SEG</div><div class="dd">21</div></div><div><div class="tt">Ritmo Sustentado</div><div class="td">5 km contínuos · Pace 5:30–5:40</div></div><span class="badge bd">✓ Feito</span></div>
-        <div class="tr ds"><div class="db"><div class="dn">TER</div><div class="dd">22</div></div><div><div class="tt">Descanso</div><div class="td">Recuperação ativa</div></div><span class="badge bx">Descanso</span></div>
-        <div class="tr done" onclick="tgl(this)"><div class="db" style="background:rgba(200,241,53,.1)"><div class="dn">QUA</div><div class="dd">23</div></div><div><div class="tt">Intervalado</div><div class="td">5 × 1000m · Pace 5:05–5:15 · Rec 90s</div></div><span class="badge bd">✓ Feito</span></div>
-        <div class="tr hj" onclick="tgl(this)"><div class="db"><div class="dn">QUI</div><div class="dd">24</div></div><div><div class="tt">Intervalado Progressivo</div><div class="td">6 × 800m · Pace 5:05–5:15 · Rec 90s</div></div><span class="badge bi">Intervalado</span></div>
-        <div class="tr ds"><div class="db"><div class="dn">SEX</div><div class="dd">25</div></div><div><div class="tt">Descanso</div><div class="td">—</div></div><span class="badge bx">Descanso</span></div>
-        <div class="tr" onclick="tgl(this)"><div class="db"><div class="dn">SÁB</div><div class="dd">26</div></div><div><div class="tt">Longão</div><div class="td">15–16 km · Pace 5:50–6:10 · Split negativo</div></div><span class="badge bl">Longão</span></div>
-        <div class="tr ds"><div class="db"><div class="dn">DOM</div><div class="dd">27</div></div><div><div class="tt">Opcional leve</div><div class="td">20–30 min trote regenerativo</div></div><span class="badge bv">Opcional</span></div>
+      <div class="ct" id="semana-titulo">Carregando semana... <span class="cb" id="semana-badge">aguarde</span></div>
+      <div class="wg" id="semana-body">
+        <div class="loading"><div class="sp"></div>carregando treinos...</div>
       </div>
     </div>
   </div>
-
+ 
   <div class="view" id="view-historico">
     <div class="card">
       <div class="ct">Histórico de Treinos <span class="cb" id="hist-count">—</span></div>
@@ -152,7 +146,7 @@
       <div id="hist-body"><div class="loading"><div class="sp"></div>carregando...</div></div>
     </div>
   </div>
-
+ 
   <div class="view" id="view-analise">
     <div class="g2">
       <div class="card" style="margin-bottom:0">
@@ -179,18 +173,18 @@
       </div>
     </div>
   </div>
-
+ 
 </div>
 <script>
   const SUPABASE_URL = 'https://uuhekabemapcjunpolbq.supabase.co'
-  const SUPABASE_ANON_KEY = 'sb_publishable_un8xpVJd7xymlhppWmInUQ_xZC4PxoB'
+  const SUPABASE_ANON_KEY = 'COLOCA_AQUI_SUA_CHAVE_PUBLICA'
   const ATHLETE_ID = '58dc49f7-f2dd-4cea-b45c-a737989143fb'
-
+ 
   const { createClient } = supabase
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
+ 
   function sw(id,el){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('view-'+id).classList.add('active');el.classList.add('active')}
-
+ 
   ;(function(){
     const prova=new Date('2026-07-05'),inicio=new Date('2026-03-01'),hoje=new Date()
     const diff=Math.ceil((prova-hoje)/864e5)
@@ -198,11 +192,11 @@
     const pct=Math.min(100,Math.max(0,Math.round(((hoje-inicio)/(prova-inicio))*100)))
     setTimeout(()=>{document.getElementById('prog-fill').style.width=pct+'%';document.getElementById('prog-pct').textContent=pct+'%'},600)
   })()
-
+ 
   function fp(s){if(!s)return'—';const m=Math.floor(s/60),sec=String(Math.round(s%60)).padStart(2,'0');return`${m}:${sec}`}
   function pc(s){if(!s)return'';if(s<=330)return'cb2';if(s<=360)return'cg';return'cw'}
   function fd(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
-
+ 
   function tgl(row){
     if(row.classList.contains('ds'))return
     const b=row.querySelector('.badge'),t=row.querySelector('.tt').textContent
@@ -214,7 +208,7 @@
       else{b.className='badge bv';b.textContent='Opcional'}
     }else{row.classList.add('done');b.className='badge bd';b.textContent='✓ Feito'}
   }
-
+ 
   async function load(){
     try{
       const{data:acts,error}=await db.from('activities').select('*').eq('athlete_id',ATHLETE_ID).order('date',{ascending:false})
@@ -240,13 +234,151 @@
     }
   }
   load()
+  loadSemana()
+ 
+  async function loadSemana() {
+    try {
+      const hoje = new Date()
+      const hojeStr = hoje.toISOString().split('T')[0]
+ 
+      // Pega treinos da semana atual (onde workout_date >= hoje ou nos últimos 7 dias)
+      const { data: treinos, error } = await db
+        .from('planned_workouts')
+        .select('*')
+        .eq('athlete_id', ATHLETE_ID)
+        .order('workout_date', { ascending: true })
+ 
+      if (error) throw error
+      if (!treinos || !treinos.length) {
+        document.getElementById('semana-body').innerHTML = '<div style="color:var(--subtext);font-size:13px;padding:20px 0">Nenhum treino planejado encontrado.</div>'
+        return
+      }
+ 
+      // Descobre semana atual
+      const semanaAtual = treinos.find(t => t.workout_date >= hojeStr)
+      const weekNum = semanaAtual ? semanaAtual.week_number : treinos[treinos.length-1].week_number
+      const semana = treinos.filter(t => t.week_number === weekNum)
+ 
+      // Datas da semana
+      const datas = semana.map(t => t.workout_date)
+      const inicio = new Date(datas[0]).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})
+      const fim = new Date(datas[datas.length-1]).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})
+      document.getElementById('semana-titulo').innerHTML = `Semana ${weekNum} — ${inicio} a ${fim} <span class="cb" id="semana-badge">Em andamento</span>`
+ 
+      const diasNome = {SEG:'SEG',TER:'TER',QUA:'QUA',QUI:'QUI',SEX:'SEX',SAB:'SÁB',DOM:'DOM'}
+      const badgeMap = {
+        'Ritmo Progressivo': 'br', 'Ritmo Sustentado': 'br',
+        'Intervalado': 'bi', 'Longão Progressivo': 'bl', 'Longão Forte': 'bl',
+        'Opcional Leve': 'bv', 'Descanso': 'bx'
+      }
+      const badgeLabel = {
+        'Ritmo Progressivo': 'Ritmo', 'Ritmo Sustentado': 'Ritmo',
+        'Intervalado': 'Intervalado', 'Longão Progressivo': 'Longão', 'Longão Forte': 'Longão',
+        'Opcional Leve': 'Opcional', 'Descanso': 'Descanso'
+      }
+ 
+      document.getElementById('semana-body').innerHTML = semana.map(t => {
+        const data = new Date(t.workout_date + 'T12:00:00')
+        const diaNum = data.getDate()
+        const diaNome = diasNome[t.day_of_week] || t.day_of_week
+        const isHoje = t.workout_date === hojeStr
+        const isDescanso = t.type === 'Descanso'
+        const isDone = t.completed
+        const badge = badgeMap[t.type] || 'bv'
+        const label = badgeLabel[t.type] || t.type
+ 
+        let classes = 'tr'
+        if (isDescanso) classes += ' ds'
+        else if (isDone) classes += ' done'
+        else if (isHoje) classes += ' hj'
+ 
+        const diaStyle = isDone ? 'style="background:rgba(200,241,53,.1)"' : ''
+        const onclick = isDescanso ? '' : `onclick="tglDb('${t.id}', this)"`
+        const badgeHtml = isDone
+          ? `<span class="badge bd">✓ Feito</span>`
+          : `<span class="badge ${badge}">${label}</span>`
+ 
+        return `<div class="${classes}" ${onclick} data-id="${t.id}">
+          <div class="db" ${diaStyle}><div class="dn">${diaNome}</div><div class="dd">${diaNum}</div></div>
+          <div><div class="tt">${t.type}</div><div class="td">${t.description||''}</div></div>
+          ${badgeHtml}
+        </div>`
+      }).join('')
+ 
+    } catch(e) {
+      console.error(e)
+      document.getElementById('semana-body').innerHTML = '<div style="color:var(--red);font-size:13px;padding:20px 0">Erro ao carregar treinos.</div>'
+    }
+  }
+ 
+  async function tglDb(id, row) {
+    if (row.classList.contains('ds')) return
+    const badge = row.querySelector('.badge')
+    const isDone = row.classList.contains('done')
+    const newDone = !isDone
+ 
+    row.classList.toggle('done', newDone)
+    if (newDone) { badge.className='badge bd'; badge.textContent='✓ Feito' }
+    else {
+      const tipo = row.querySelector('.tt').textContent
+      const badgeMap = {'Ritmo':'br','Intervalado':'bi','Longão':'bl','Opcional':'bv'}
+      const key = Object.keys(badgeMap).find(k => tipo.includes(k)) || 'bv'
+      badge.className='badge '+badgeMap[key]; badge.textContent=tipo
+    }
+ 
+    await db.from('planned_workouts').update({completed: newDone}).eq('id', id)
+  }
+ 
   function openModal(){document.getElementById('modal-ov').style.display='flex'}
   function closeModal(e){if(e.target===document.getElementById('modal-ov'))document.getElementById('modal-ov').style.display='none'}
   function ev(e){e.preventDefault();document.getElementById('upload-area').style.borderColor='var(--accent)'}
   function drop(e){e.preventDefault();document.getElementById('upload-area').style.borderColor='#2a2a35';const f=e.dataTransfer.files[0];if(f)showPrev(f)}
   function prevFile(i){if(i.files[0])showPrev(i.files[0])}
   function showPrev(f){const r=new FileReader();r.onload=e=>{document.getElementById('prev-img').src=e.target.result;document.getElementById('upload-prev').style.display='block'};r.readAsDataURL(f)}
-  function submitTreino(){document.getElementById('modal-ov').style.display='none';setTimeout(()=>alert('Treino enviado! Analise disponivel em breve.'),200)}
+  async function submitTreino() {
+    const img = document.getElementById('prev-img').src
+    const base64 = img.split(',')[1]
+    
+    // Mostra loading
+    const btn = document.querySelector('#upload-prev button')
+    btn.textContent = '⏳ Analisando com IA...'
+    btn.disabled = true
+ 
+    try {
+      const res = await fetch('https://uuhekabemapcjunpolbq.supabase.co/functions/v1/analyze-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_base64: base64,
+          athlete_id: ATHLETE_ID
+        })
+      })
+ 
+      const data = await res.json()
+ 
+      if (data.success) {
+        document.getElementById('modal-ov').style.display = 'none'
+        const w = data.analysis
+        const pace = fp(w.avg_pace_seconds)
+        alert(`✅ Treino salvo!
+ 
+📅 ${w.date}
+📏 ${w.distance_km} km
+⚡ Pace: ${pace}/km
+❤️ FC: ${w.avg_heart_rate || '—'} bpm
+ 
+💬 ${w.notes}`)
+        load() // Atualiza dashboard
+      } else {
+        throw new Error(data.error)
+      }
+    } catch(e) {
+      alert('❌ Erro ao analisar treino: ' + e.message)
+    } finally {
+      btn.textContent = 'Enviar para Análise →'
+      btn.disabled = false
+    }
+  }
 </script>
 <div id="modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="closeModal(event)">
   <div style="background:#17171c;border:1px solid #2a2a35;border-radius:14px;padding:28px;width:420px;max-width:95vw">
@@ -270,3 +402,4 @@
 </div>
 </body>
 </html>
+ 
